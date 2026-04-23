@@ -1,1041 +1,484 @@
 <!DOCTYPE html>
 <html lang="pt-br" data-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family Hub Pro - Ultimate Edition</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        
-        :root { 
-            --bg-body: #f1f5f9; --bg-surface: #ffffff; --bg-input: #f8fafc;
-            --primary: #3b82f6; --primary-hover: #2563eb; --text-main: #0f172a;
-            --text-muted: #64748b; --border-color: #e2e8f0;
-            --danger: #ef4444; --warning: #f59e0b; --success: #10b981;
-        }
-        
-        [data-theme="dark"] {
-            --bg-body: #020617; --bg-surface: #0f172a; --bg-input: #1e293b;
-            --primary: #3b82f6; --primary-hover: #60a5fa; --text-main: #f8fafc;
-            --text-muted: #94a3b8; --border-color: #334155; 
-        }
-        
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
-        body { background: var(--bg-body); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-        
-        /* Telas de Login e Cadastro */
-        #auth-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-body); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .auth-box { width: 90%; max-width: 400px; text-align: center; }
-        .auth-box h2 { color: var(--primary); margin-bottom: 10px; font-size: 1.8rem; }
-        .toggle-auth { margin-top: 15px; font-size: 0.9rem; color: var(--primary); cursor: pointer; font-weight: bold; }
-        .toggle-auth:hover { text-decoration: underline; }
-        
-        #app-screen { display: none; flex: 1; height: 100vh; }
-        
-        /* Layout Principal */
-        .sidebar { width: 260px; background: var(--bg-surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 10; overflow-y: auto;}
-        .sidebar-header { padding: 25px; border-bottom: 1px solid var(--border-color); font-size: 1.2rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center;}
-        .menu-btn { background: transparent; color: var(--text-muted); border: none; padding: 15px 20px; text-align: left; cursor: pointer; width: 100%; font-size: 1rem; border-left: 4px solid transparent; }
-        .menu-btn:hover, .menu-btn.active { background: rgba(59, 130, 246, 0.1); color: var(--primary); border-left: 4px solid var(--primary); font-weight: bold; }
-        .main { flex: 1; overflow-y: auto; padding: 30px; }
-        
-        /* Componentes Comuns */
-        .card { background: var(--bg-surface); padding: 25px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 8px 16px rgba(0,0,0,0.2); margin-bottom: 25px; }
-        .aba { display: none; }
-        .aba.ativa { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Barra Superior e Notificações */
-        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: var(--bg-surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); }
-        .btn-theme { background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; }
-        
-        .nav-actions { display: flex; gap: 10px; align-items: center; position: relative; }
-        .btn-icon { background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; position: relative; display: flex; align-items: center; justify-content: center;}
-        .badge-notify { position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 10px; font-weight: bold; }
-        
-        .notifications-dropdown { display: none; position: absolute; top: 55px; right: 0; width: 320px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 100; max-height: 400px; overflow-y: auto; text-align: left;}
-        .notifications-dropdown.active { display: block; animation: fadeIn 0.2s; }
-        .notify-header { padding: 15px; border-bottom: 1px solid var(--border-color); font-weight: bold; background: var(--bg-input); border-radius: 12px 12px 0 0;}
-        .notify-item { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; line-height: 1.4;}
-        .notify-item.atrasada { border-left: 4px solid var(--danger); }
-        .notify-item.hoje { border-left: 4px solid var(--warning); }
-
-        /* Formulários e Botões */
-        .form-row { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
-        .input-group { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 8px; }
-        .input-group label { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: bold; }
-        input, select { width: 100%; padding: 12px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); outline: none; font-size: 1rem; margin-bottom: 15px;}
-        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
-        .btn-submit { padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; align-self: flex-end; height: 45px; transition: 0.2s; width: 100%;}
-        .btn-submit:hover { background: var(--primary-hover); transform: translateY(-2px); }
-        .btn-submit.danger { background: var(--danger); }
-        .btn-submit.danger:hover { background: #b91c1c; }
-        .btn-submit.small { padding: 8px 15px; height: auto; font-size: 0.9rem; width: auto;}
-
-        /* Listas e Gamificação */
-        .item-list { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--border-color); }
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; background: rgba(59, 130, 246, 0.2); color: var(--primary); }
-        .badge.pontos { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success); }
-        .btn-action { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 6px 12px; border-radius: 6px; cursor: pointer; margin-left: 5px; font-weight: bold;}
-        .btn-action.success:hover { background: var(--success); color: white; border-color: var(--success);}
-        .btn-action.danger:hover { background: var(--danger); color: white; border-color: var(--danger);}
-        .btn-action.warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); border-color: var(--warning); }
-        .btn-action.warning:hover { background: var(--warning); color: white; }
-
-        /* Tags e Progress Bar */
-        .tag-dif { font-size: 0.75rem; padding: 3px 6px; border-radius: 4px; margin-right: 5px; font-weight: bold;}
-        .tag-dif.facil { background: rgba(16, 185, 129, 0.2); color: var(--success); }
-        .tag-dif.media { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
-        .tag-dif.dificil { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
-        .tag-pts { font-weight: bold; color: var(--success); }
-        
-        progress { width: 100%; height: 20px; border-radius: 10px; overflow: hidden; margin-top: 10px;}
-        progress::-webkit-progress-bar { background-color: var(--bg-input); border: 1px solid var(--border-color);}
-        progress::-webkit-progress-value { background-color: var(--success); transition: width 0.5s ease;}
-
-        /* Checkbox de Compras */
-        .compra-check { width: 20px; height: 20px; cursor: pointer; accent-color: var(--success); margin-bottom: 0;}
-        .compra-item.riscado { text-decoration: line-through; color: var(--text-muted); }
-
-        /* Mural */
-        .msg-bubble { background: var(--bg-input); padding: 15px; border-radius: 12px; border-left: 4px solid var(--primary); margin-bottom: 15px; }
-        .msg-header { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px; }
-
-        /* --- NOVO CALENDÁRIO --- */
-        .calendar-wrapper { overflow-x: auto; margin-top: 20px; border: 1px solid var(--border-color); border-radius: 12px; }
-        .calendar-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-input); border-bottom: 1px solid var(--border-color); font-weight: bold;}
-        .calendar-header button { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 5px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;}
-        .calendar-header button:hover { background: var(--primary); color: white; border-color: var(--primary); }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--border-color); gap: 1px; min-width: 700px;}
-        .calendar-day-header { text-align: center; padding: 10px; background: var(--bg-surface); font-size: 0.85rem; color: var(--text-muted); font-weight: bold;}
-        .calendar-day { background: var(--bg-surface); min-height: 100px; padding: 5px; position: relative; display: flex; flex-direction: column; gap: 3px;}
-        .calendar-day.today { background: rgba(59, 130, 246, 0.05); }
-        .calendar-day.empty { background: var(--bg-body); }
-        .day-number { font-weight: bold; font-size: 0.9rem; margin-bottom: 5px; display: block; color: var(--text-muted); text-align: right; padding-right: 5px;}
-        .calendar-day.today .day-number { color: var(--primary); }
-        .cal-badge { font-size: 0.7rem; padding: 4px 6px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; font-weight: 600; line-height: 1.2;}
-        .cal-badge.holiday { background: rgba(245, 158, 11, 0.15); color: var(--warning); border-left: 2px solid var(--warning); }
-        .cal-badge.activity { background: rgba(59, 130, 246, 0.15); color: var(--primary); border-left: 2px solid var(--primary); }
-        .cal-badge.event { background: rgba(16, 185, 129, 0.15); color: var(--success); border-left: 2px solid var(--success); }
-
-        /* --- ESTILOS DO MODAL PERSONALIZADO --- */
-        #custom-modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7); z-index: 3000;
-            display: none; justify-content: center; align-items: center;
-            backdrop-filter: blur(5px);
-        }
-        #custom-modal-box {
-            width: 90%; max-width: 420px; 
-            margin-bottom: 0;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-        }
-
-        @media (max-width: 768px) {
-            #app-screen { flex-direction: column; }
-            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border-color); max-height: 200px;}
-            nav { display: flex; overflow-x: auto; white-space: nowrap; }
-            .menu-btn { flex: 1; text-align: center; border-left: none; border-bottom: 4px solid transparent; }
-            .top-bar { flex-direction: column; align-items: flex-start; gap: 15px;}
-            .nav-actions { width: 100%; justify-content: space-between; }
-        }
-    </style>
-</head>
-<body>
-
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FamilyHub</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
     <div id="auth-screen">
-        <div id="box-login" class="card auth-box">
-            <h2>⚡ Entrar no Hub</h2>
-            <p style="color: var(--text-muted); margin-bottom: 20px;" id="login-family-title">Faça login para acessar.</p>
-            <input type="text" id="login-user" placeholder="Seu Nome (Ex: João)">
-            <input type="password" id="login-pass" placeholder="Senha da Família">
-            <button class="btn-submit" onclick="fazerLogin()">Acessar</button>
-            <div class="toggle-auth" onclick="alternarAuth('cadastro')">Nova família? Crie uma conta aqui</div>
+      <div id="box-login" class="card auth-box">
+        <h2>⚡ Entrar no Hub</h2>
+        <p
+          style="color: var(--text-muted); margin-bottom: 20px"
+          id="login-family-title"
+        >
+          Faça login para acessar.
+        </p>
+        <input type="text" id="login-user" placeholder="Seu Nome (Ex: João)" />
+        <input type="password" id="login-pass" placeholder="Senha da Família" />
+        <button class="btn-submit" onclick="fazerLogin()">Acessar</button>
+        <div class="toggle-auth" onclick="alternarAuth('cadastro')">
+          Nova família? Crie uma conta aqui
         </div>
+      </div>
 
-        <div id="box-cadastro" class="card auth-box" style="display: none;">
-            <h2>🏠 Criar Família</h2>
-            <p style="color: var(--text-muted); margin-bottom: 20px;">Crie o ambiente restrito da sua família.</p>
-            <input type="text" id="reg-family" placeholder="Nome da Família (Ex: Silva)">
-            <input type="text" id="reg-user" placeholder="Seu Nome (Administrador)">
-            <input type="password" id="reg-pass" placeholder="Crie uma Senha para a Família">
-            <button class="btn-submit" onclick="registrarFamilia()">Criar Família</button>
-            <div class="toggle-auth" onclick="alternarAuth('login')">Já tem uma conta? Faça Login</div>
+      <div id="box-cadastro" class="card auth-box" style="display: none">
+        <h2>🏠 Criar Família</h2>
+        <p style="color: var(--text-muted); margin-bottom: 20px">
+          Crie o ambiente restrito da sua família.
+        </p>
+        <input
+          type="text"
+          id="reg-family"
+          placeholder="Nome da Família (Ex: Silva)"
+        />
+        <input
+          type="text"
+          id="reg-user"
+          placeholder="Seu Nome (Administrador)"
+        />
+        <input
+          type="password"
+          id="reg-pass"
+          placeholder="Crie uma Senha para a Família"
+        />
+        <button class="btn-submit" onclick="registrarFamilia()">
+          Criar Família
+        </button>
+        <div class="toggle-auth" onclick="alternarAuth('login')">
+          Já tem uma conta? Faça Login
         </div>
+      </div>
     </div>
 
     <div id="app-screen">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <span>⚡ Family Hub</span>
-                <button class="btn-theme" onclick="toggleTheme()" title="Trocar Tema">🌓</button>
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <span>⚡ Family Hub</span>
+          <button class="btn-theme" onclick="toggleTheme()" title="Trocar Tema">
+            🌓
+          </button>
+        </div>
+        <nav>
+          <button class="menu-btn active" onclick="navegar('atividades', this)">
+            📋 Atividades
+          </button>
+          <button class="menu-btn" onclick="navegar('calendario', this)">
+            📅 Calendário
+          </button>
+          <button class="menu-btn" onclick="navegar('compras', this)">
+            🛒 Compras
+          </button>
+          <button class="menu-btn" onclick="navegar('loja', this)">
+            🎁 Loja (Prêmios)
+          </button>
+          <button class="menu-btn" onclick="navegar('mural', this)">
+            💬 Mural
+          </button>
+          <button class="menu-btn" onclick="navegar('membros', this)">
+            👥 Família / Cofre
+          </button>
+          <button class="menu-btn" onclick="navegar('ranking', this)">
+            🏆 Ranking / Metas
+          </button>
+        </nav>
+
+        <button class="menu-btn" onclick="logout()">🚪 Sair</button>
+      </aside>
+
+      <main class="main">
+        <div class="top-bar">
+          <div>
+            <h3 id="saudacao-user">🌤️ Olá, Família!</h3>
+            <div class="text-muted" id="data-atual">Carregando data...</div>
+          </div>
+          <div class="nav-actions">
+            <span class="badge" id="info-atividades">0 Atv</span>
+
+            <div style="position: relative">
+              <button
+                class="btn-icon"
+                onclick="toggleNotificacoes()"
+                title="Notificações"
+              >
+                🔔
+                <span
+                  class="badge-notify"
+                  id="notif-count"
+                  style="display: none"
+                  >0</span
+                >
+              </button>
+              <div class="notifications-dropdown" id="notif-dropdown">
+                <div class="notify-header">Alertas do Dia</div>
+                <div id="lista-notificacoes"></div>
+              </div>
             </div>
-            <nav>
-                <button class="menu-btn active" onclick="navegar('atividades', this)">📋 Atividades</button>
-                <button class="menu-btn" onclick="navegar('calendario', this)">📅 Calendário</button>
-                <button class="menu-btn" onclick="navegar('compras', this)">🛒 Compras</button>
-                <button class="menu-btn" onclick="navegar('loja', this)">🎁 Loja (Prêmios)</button>
-                <button class="menu-btn" onclick="navegar('mural', this)">💬 Mural</button>
-                <button class="menu-btn" onclick="navegar('membros', this)">👥 Família / Cofre</button>
-                <button class="menu-btn" onclick="navegar('ranking', this)">🏆 Ranking / Metas</button>
-            </nav>
-            <div style="margin-top: auto; padding: 20px; border-top: 1px solid var(--border-color);">
-                <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: bold;">BACKUP DE DADOS</span>
-                <button class="btn-submit small" style="background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 10px;" onclick="exportarDados()">💾 Exportar</button>
-                <button class="btn-submit small" style="background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 5px;" onclick="document.getElementById('import-file').click()">📂 Importar</button>
-                <input type="file" id="import-file" style="display:none;" onchange="importarDados(event)" accept=".json">
+          </div>
+        </div>
+
+        <section id="aba-atividades" class="aba ativa">
+          <div class="card">
+            <h3 style="color: var(--primary); margin-bottom: 20px">
+              NOVA ATIVIDADE
+            </h3>
+            <div class="form-row" style="margin-bottom: 0">
+              <div class="input-group">
+                <label>Descrição</label>
+                <input
+                  type="text"
+                  id="a-desc"
+                  placeholder="Ex: Lavar a louça..."
+                />
+              </div>
+              <div class="input-group">
+                <label>Data Limite</label>
+                <input type="date" id="a-data" />
+              </div>
+              <div class="input-group">
+                <label>Responsável</label>
+                <select id="a-membro">
+                  <option value="">Carregando...</option>
+                </select>
+              </div>
             </div>
-        </aside>
-
-        <main class="main">
-            <div class="top-bar">
-                <div>
-                    <h3 id="saudacao-user">🌤️ Olá, Família!</h3>
-                    <div class="text-muted" id="data-atual">Carregando data...</div>
-                </div>
-                <div class="nav-actions">
-                    <span class="badge" id="info-atividades">0 Atv</span>
-                    
-                    <div style="position: relative;">
-                        <button class="btn-icon" onclick="toggleNotificacoes()" title="Notificações">
-                            🔔 <span class="badge-notify" id="notif-count" style="display:none;">0</span>
-                        </button>
-                        <div class="notifications-dropdown" id="notif-dropdown">
-                            <div class="notify-header">Alertas do Dia</div>
-                            <div id="lista-notificacoes"></div>
-                        </div>
-                    </div>
-                </div>
+            <div class="form-row">
+              <div class="input-group">
+                <label>Dificuldade</label>
+                <select id="a-dificuldade" onchange="calcularPreviaPontos()">
+                  <option value="facil">🟢 Fácil (Base: 10pts)</option>
+                  <option value="media">🟡 Média (+5 pts)</option>
+                  <option value="dificil">🔴 Difícil (+10 pts)</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>Importância</label>
+                <select id="a-importancia" onchange="calcularPreviaPontos()">
+                  <option value="normal">Normal (+0 pts)</option>
+                  <option value="alta">Alta (+5 pts)</option>
+                  <option value="urgente">🚨 Urgente (+10 pts)</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>&nbsp;</label>
+                <button
+                  class="btn-submit"
+                  onclick="novaAtividade()"
+                  id="btn-add-atv"
+                >
+                  Adicionar (10 pts)
+                </button>
+              </div>
             </div>
+          </div>
+          <div class="card">
+            <h3>📋 Atividades Pendentes</h3>
+            <div id="lista-atividades" style="margin-top: 15px"></div>
+          </div>
+        </section>
 
-            <section id="aba-atividades" class="aba ativa">
-                <div class="card">
-                    <h3 style="color: var(--primary); margin-bottom: 20px;">NOVA ATIVIDADE</h3>
-                    <div class="form-row" style="margin-bottom: 0;">
-                        <div class="input-group">
-                            <label>Descrição</label>
-                            <input type="text" id="a-desc" placeholder="Ex: Lavar a louça...">
-                        </div>
-                        <div class="input-group">
-                            <label>Data Limite</label>
-                            <input type="date" id="a-data">
-                        </div>
-                        <div class="input-group">
-                            <label>Responsável</label>
-                            <select id="a-membro"><option value="">Carregando...</option></select>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="input-group">
-                            <label>Dificuldade</label>
-                            <select id="a-dificuldade" onchange="calcularPreviaPontos()">
-                                <option value="facil">🟢 Fácil (Base: 10pts)</option>
-                                <option value="media">🟡 Média (+5 pts)</option>
-                                <option value="dificil">🔴 Difícil (+10 pts)</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Importância</label>
-                            <select id="a-importancia" onchange="calcularPreviaPontos()">
-                                <option value="normal">Normal (+0 pts)</option>
-                                <option value="alta">Alta (+5 pts)</option>
-                                <option value="urgente">🚨 Urgente (+10 pts)</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>&nbsp;</label>
-                            <button class="btn-submit" onclick="novaAtividade()" id="btn-add-atv">Adicionar (10 pts)</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="card">
-                    <h3>📋 Atividades Pendentes</h3>
-                    <div id="lista-atividades" style="margin-top: 15px;"></div>
-                </div>
-            </section>
+        <section id="aba-calendario" class="aba">
+          <div class="card">
+            <h3 style="margin-bottom: 15px">📅 Adicionar Novo Evento</h3>
+            <p
+              style="
+                color: var(--text-muted);
+                font-size: 0.9rem;
+                margin-bottom: 15px;
+              "
+            >
+              Anote aqui eventos, consultas e compromissos importantes. Eles
+              aparecerão no calendário abaixo.
+            </p>
+            <div class="form-row" style="margin-bottom: 0">
+              <div class="input-group" style="flex: 1">
+                <input type="date" id="cal-data" />
+              </div>
+              <div class="input-group" style="flex: 2">
+                <input
+                  type="text"
+                  id="cal-desc"
+                  placeholder="Qual é o evento? (Ex: Dentista do João)"
+                />
+              </div>
+              <div class="input-group">
+                <button class="btn-submit" onclick="novoEvento()">
+                  Agendar
+                </button>
+              </div>
+            </div>
+          </div>
 
-            <section id="aba-calendario" class="aba">
-                <div class="card">
-                    <h3 style="margin-bottom: 15px;">📅 Adicionar Novo Evento</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Anote aqui eventos, consultas e compromissos importantes. Eles aparecerão no calendário abaixo.</p>
-                    <div class="form-row" style="margin-bottom: 0;">
-                        <div class="input-group" style="flex: 1;">
-                            <input type="date" id="cal-data">
-                        </div>
-                        <div class="input-group" style="flex: 2;">
-                            <input type="text" id="cal-desc" placeholder="Qual é o evento? (Ex: Dentista do João)">
-                        </div>
-                        <div class="input-group">
-                            <button class="btn-submit" onclick="novoEvento()">Agendar</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card" style="padding: 15px;">
-                    <h3 style="margin-left: 5px;">🗓️ Visão Mensal</h3>
-                    
-                    <div class="calendar-wrapper">
-                        <div class="calendar-header">
-                            <button onclick="mudarMes(-1)">◀ Anterior</button>
-                            <span id="calendar-title" style="font-size: 1.2rem;">Mês Ano</span>
-                            <button onclick="mudarMes(1)">Próximo ▶</button>
-                        </div>
-                        <div class="calendar-grid" id="calendar-grid">
-                            </div>
-                    </div>
-                </div>
-            </section>
+          <div class="card" style="padding: 15px">
+            <h3 style="margin-left: 5px">🗓️ Visão Mensal</h3>
 
-            <section id="aba-compras" class="aba">
-                <div class="card">
-                    <h3 style="margin-bottom: 15px;">🛒 Lista de Compras</h3>
-                    <div class="form-row" style="margin-bottom: 0;">
-                        <div class="input-group" style="flex: 3;">
-                            <input type="text" id="c-item" placeholder="O que precisamos comprar? (Ex: Leite)">
-                        </div>
-                        <div class="input-group" style="flex: 1;">
-                            <button class="btn-submit" onclick="novoItemCompra()">Adicionar</button>
-                        </div>
-                    </div>
-                    <div id="lista-compras" style="margin-top: 20px;"></div>
-                </div>
-            </section>
+            <div class="calendar-wrapper">
+              <div class="calendar-header">
+                <button onclick="mudarMes(-1)">◀ Anterior</button>
+                <span id="calendar-title" style="font-size: 1.2rem"
+                  >Mês Ano</span
+                >
+                <button onclick="mudarMes(1)">Próximo ▶</button>
+              </div>
+              <div class="calendar-grid" id="calendar-grid"></div>
+            </div>
+          </div>
+        </section>
 
-            <section id="aba-loja" class="aba">
-                <div class="card">
-                    <h3 style="margin-bottom: 15px;">🎁 Loja de Recompensas</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Troque seus pontos por prêmios na vida real!</p>
-                    <div class="form-row">
-                        <div class="input-group">
-                            <label>Nome do Prêmio</label>
-                            <input type="text" id="r-nome" placeholder="Ex: Sobremesa extra...">
-                        </div>
-                        <div class="input-group">
-                            <label>Custo (Pontos)</label>
-                            <input type="number" id="r-custo" placeholder="Ex: 100">
-                        </div>
-                        <div class="input-group">
-                            <label>&nbsp;</label>
-                            <button class="btn-submit" onclick="novaRecompensa()">Criar Prêmio</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="card">
-                    <h3>🛒 Prêmios Disponíveis</h3>
-                    <div id="lista-loja" style="margin-top: 15px;"></div>
-                </div>
-            </section>
+        <section id="aba-compras" class="aba">
+          <div class="card">
+            <h3 style="margin-bottom: 15px">🛒 Lista de Compras</h3>
+            <div class="form-row" style="margin-bottom: 0">
+              <div class="input-group" style="flex: 3">
+                <input
+                  type="text"
+                  id="c-item"
+                  placeholder="O que precisamos comprar? (Ex: Leite)"
+                />
+              </div>
+              <div class="input-group" style="flex: 1">
+                <button class="btn-submit" onclick="novoItemCompra()">
+                  Adicionar
+                </button>
+              </div>
+            </div>
+            <div id="lista-compras" style="margin-top: 20px"></div>
+          </div>
+        </section>
 
-            <section id="aba-mural" class="aba">
-                <div class="card">
-                    <h3 style="margin-bottom: 15px;">💬 Mural da Família</h3>
-                    <div class="input-group" style="margin-bottom: 15px;">
-                        <input type="text" id="m-texto" placeholder="Deixe um recado rápido para todos..." autocomplete="off">
-                    </div>
-                    <button class="btn-submit" style="width: auto; float: right;" onclick="novaMensagem()">Enviar Recado</button>
-                    <div style="clear: both;"></div>
-                </div>
-                <div class="card">
-                    <div id="lista-mural">Nenhuma mensagem no mural.</div>
-                </div>
-            </section>
+        <section id="aba-loja" class="aba">
+          <div class="card">
+            <h3 style="margin-bottom: 15px">🎁 Loja de Recompensas</h3>
+            <p
+              style="
+                color: var(--text-muted);
+                font-size: 0.9rem;
+                margin-bottom: 15px;
+              "
+            >
+              Troque seus pontos por prêmios na vida real!
+            </p>
+            <div class="form-row">
+              <div class="input-group">
+                <label>Nome do Prêmio</label>
+                <input
+                  type="text"
+                  id="r-nome"
+                  placeholder="Ex: Sobremesa extra..."
+                />
+              </div>
+              <div class="input-group">
+                <label>Custo (Pontos)</label>
+                <input type="number" id="r-custo" placeholder="Ex: 100" />
+              </div>
+              <div class="input-group">
+                <label>&nbsp;</label>
+                <button class="btn-submit" onclick="novaRecompensa()">
+                  Criar Prêmio
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>🛒 Prêmios Disponíveis</h3>
+            <div id="lista-loja" style="margin-top: 15px"></div>
+          </div>
+        </section>
 
-            <section id="aba-membros" class="aba">
-                <div class="card">
-                    <h3 style="margin-bottom: 15px;">👥 Gerenciar Membros & Avatar</h3>
-                    <div class="form-row">
-                        <div class="input-group" style="flex: 0.5;">
-                            <label>Avatar</label>
-                            <select id="m-avatar">
-                                <option value="👨">👨 Pai</option><option value="👩">👩 Mãe</option>
-                                <option value="👦">👦 Menino</option><option value="👧">👧 Menina</option>
-                                <option value="🐶">🐶 Pet</option><option value="👽">👽 Alien</option>
-                                <option value="🦸‍♂️">🦸‍♂️ Herói</option><option value="🥷">🥷 Ninja</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Nome</label>
-                            <input type="text" id="m-nome" placeholder="Nome do membro">
-                        </div>
-                        <div class="input-group">
-                            <label>Papel</label>
-                            <select id="m-papel"><option>Pai</option><option>Mãe</option><option>Filho(a)</option><option>Outro</option></select>
-                        </div>
-                        <div class="input-group">
-                            <label>&nbsp;</label>
-                            <button class="btn-submit" onclick="novoMembro()">Cadastrar</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="card">
-                    <h3>Cofre & Finanças (Mesada)</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Controle o saldo financeiro real de cada membro.</p>
-                    <div id="lista-membros-simples"></div>
-                </div>
-            </section>
+        <section id="aba-mural" class="aba">
+          <div class="card">
+            <h3 style="margin-bottom: 15px">💬 Mural da Família</h3>
+            <div class="input-group" style="margin-bottom: 15px">
+              <input
+                type="text"
+                id="m-texto"
+                placeholder="Deixe um recado rápido para todos..."
+                autocomplete="off"
+              />
+            </div>
+            <button
+              class="btn-submit"
+              style="width: auto; float: right"
+              onclick="novaMensagem()"
+            >
+              Enviar Recado
+            </button>
+            <div style="clear: both"></div>
+          </div>
+          <div class="card">
+            <div id="lista-mural">Nenhuma mensagem no mural.</div>
+          </div>
+        </section>
 
-            <section id="aba-ranking" class="aba">
-                <div class="card" style="border: 2px solid var(--primary);">
-                    <h3 style="color: var(--primary);">🎯 Meta Coletiva da Família</h3>
-                    <div class="form-row" style="margin-top: 15px;">
-                        <div class="input-group">
-                            <input type="text" id="meta-obj" placeholder="Objetivo (Ex: Viagem no fim do ano)">
-                        </div>
-                        <div class="input-group">
-                            <input type="number" id="meta-pontos" placeholder="Pontos necessários (Ex: 2000)">
-                        </div>
-                        <button class="btn-submit small" onclick="salvarMeta()">Definir Meta</button>
-                    </div>
-                    <div style="margin-top: 15px;">
-                        <strong id="meta-texto-display">Carregando meta...</strong>
-                        <progress id="meta-progress" value="0" max="100"></progress>
-                        <div style="text-align: right; font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;" id="meta-status">0 / 0 pts</div>
-                    </div>
-                </div>
+        <section id="aba-membros" class="aba">
+          <div class="card">
+            <h3 style="margin-bottom: 15px">👥 Gerenciar Membros & Avatar</h3>
+            <div class="form-row">
+              <div class="input-group" style="flex: 0.5">
+                <label>Avatar</label>
+                <select id="m-avatar">
+                  <option value="👨">👨 Pai</option>
+                  <option value="👩">👩 Mãe</option>
+                  <option value="👦">👦 Menino</option>
+                  <option value="👧">👧 Menina</option>
+                  <option value="🐶">🐶 Pet</option>
+                  <option value="🦸‍♂️">🦸‍♂️ Herói</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>Nome</label>
+                <input type="text" id="m-nome" placeholder="Nome do membro" />
+              </div>
+              <div class="input-group">
+                <label>Papel</label>
+                <select id="m-papel">
+                  <option>Pai</option>
+                  <option>Mãe</option>
+                  <option>Filho(a)</option>
+                  <option>Outro</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>&nbsp;</label>
+                <button class="btn-submit" onclick="novoMembro()">
+                  Cadastrar
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Cofre & Finanças (Mesada)</h3>
+            <p
+              style="
+                color: var(--text-muted);
+                font-size: 0.9rem;
+                margin-bottom: 15px;
+              "
+            >
+              Controle o saldo financeiro real de cada membro.
+            </p>
+            <div id="lista-membros-simples"></div>
+          </div>
+        </section>
 
-                <div class="card" style="border: 2px solid var(--success);">
-                    <h3 style="color: var(--success); margin-bottom: 15px;">🏆 Ranking Individual</h3>
-                    <div id="lista-ranking"></div>
-                    <div style="margin-top: 20px; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 10px;">
-                        <strong>Medalhas Automáticas:</strong> ⭐ Tarefas Concluídas (5+) | 🥉 Veterano (50+ pts) | 🥈 Mestre (150+ pts) | 👑 Lenda (300+ pts)
-                    </div>
-                </div>
-            </section>
-        </main>
+        <section id="aba-ranking" class="aba">
+          <div class="card" style="border: 2px solid var(--primary)">
+            <h3 style="color: var(--primary)">🎯 Meta Coletiva da Família</h3>
+            <div class="form-row" style="margin-top: 15px">
+              <div class="input-group">
+                <input
+                  type="text"
+                  id="meta-obj"
+                  placeholder="Objetivo (Ex: Viagem no fim do ano)"
+                />
+              </div>
+              <div class="input-group">
+                <input
+                  type="number"
+                  id="meta-pontos"
+                  placeholder="Pontos necessários (Ex: 2000)"
+                />
+              </div>
+              <button class="btn-submit small" onclick="salvarMeta()">
+                Definir Meta
+              </button>
+            </div>
+            <div style="margin-top: 15px">
+              <strong id="meta-texto-display">Carregando meta...</strong>
+              <progress id="meta-progress" value="0" max="100"></progress>
+              <div
+                style="
+                  text-align: right;
+                  font-size: 0.8rem;
+                  color: var(--text-muted);
+                  margin-top: 5px;
+                "
+                id="meta-status"
+              >
+                0 / 0 pts
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="border: 2px solid var(--success)">
+            <h3 style="color: var(--success); margin-bottom: 15px">
+              🏆 Ranking Individual
+            </h3>
+            <div id="lista-ranking"></div>
+            <div
+              style="
+                margin-top: 20px;
+                font-size: 0.8rem;
+                color: var(--text-muted);
+                border-top: 1px solid var(--border-color);
+                padding-top: 10px;
+              "
+            >
+              <strong>Medalhas Automáticas:</strong> ⭐ Tarefas Concluídas (5+)
+              | 🥉 Veterano (50+ pts) | 🥈 Mestre (150+ pts) | 👑 Lenda (300+
+              pts)
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <div id="custom-modal-overlay">
-        <div class="card" id="custom-modal-box">
-            <h3 id="custom-modal-title" style="color: var(--primary);">Título</h3>
-            <p id="custom-modal-msg" style="margin: 15px 0; color: var(--text-muted); font-size: 0.95rem; line-height: 1.4;"></p>
-            
-            <input type="text" id="custom-modal-input" style="display: none; margin-bottom: 20px;">
-            
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                <button class="btn-submit small" style="background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color);" id="custom-modal-cancel">Cancelar</button>
-                <button class="btn-submit small" id="custom-modal-confirm">Confirmar</button>
-            </div>
+      <div class="card" id="custom-modal-box">
+        <h3 id="custom-modal-title" style="color: var(--primary)">Título</h3>
+        <p
+          id="custom-modal-msg"
+          style="
+            margin: 15px 0;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.4;
+          "
+        ></p>
+
+        <input
+          type="text"
+          id="custom-modal-input"
+          style="display: none; margin-bottom: 20px"
+        />
+
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+          "
+        >
+          <button
+            class="btn-submit small"
+            style="
+              background: var(--bg-input);
+              color: var(--text-main);
+              border: 1px solid var(--border-color);
+            "
+            id="custom-modal-cancel"
+          >
+            Cancelar
+          </button>
+          <button class="btn-submit small" id="custom-modal-confirm">
+            Confirmar
+          </button>
         </div>
+      </div>
     </div>
 
-    <script>
-        let currentUser = "";
-        const hojeObj = new Date();
-        const hojeISO = hojeObj.toISOString().split('T')[0];
-        
-        // Variáveis de controle do Calendário Visual
-        let calMesAtual = hojeObj.getMonth();
-        let calAnoAtual = hojeObj.getFullYear();
-        const nomesMeses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-        const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-
-        function formatarDataBR(dataISO) {
-            if (!dataISO) return 'Sem data';
-            const partes = dataISO.split('-'); 
-            if (partes.length !== 3) return dataISO;
-            return `${partes[2]}/${partes[1]}/${partes[0]}`; 
-        }
-
-        // ==========================================
-        // SISTEMA DE MODAL PERSONALIZADO
-        // ==========================================
-        function abrirModal(titulo, mensagem, tipo = 'alert', valorPadrao = '') {
-            return new Promise((resolve) => {
-                const overlay = document.getElementById('custom-modal-overlay');
-                const tituloEl = document.getElementById('custom-modal-title');
-                const msgEl = document.getElementById('custom-modal-msg');
-                const inputEl = document.getElementById('custom-modal-input');
-                const btnCancel = document.getElementById('custom-modal-cancel');
-                const btnConfirm = document.getElementById('custom-modal-confirm');
-
-                tituloEl.innerText = titulo;
-                msgEl.innerText = mensagem;
-                
-                if (tipo === 'prompt') {
-                    inputEl.style.display = 'block';
-                    inputEl.value = valorPadrao;
-                    setTimeout(() => inputEl.focus(), 100);
-                } else {
-                    inputEl.style.display = 'none';
-                }
-
-                btnCancel.style.display = (tipo === 'alert') ? 'none' : 'block';
-                overlay.style.display = 'flex';
-
-                const fechar = () => {
-                    overlay.style.display = 'none';
-                    btnConfirm.onclick = null;
-                    btnCancel.onclick = null;
-                };
-
-                btnCancel.onclick = () => { fechar(); resolve(null); };
-                btnConfirm.onclick = () => { 
-                    fechar(); 
-                    resolve(tipo === 'prompt' ? inputEl.value : true); 
-                };
-            });
-        }
-
-        // ==========================================
-        // SISTEMA DE CONTAS & DB
-        // ==========================================
-        function getDB() {
-            let dbStr = localStorage.getItem('familyHubDB');
-            let db = dbStr ? JSON.parse(dbStr) : {};
-            
-            db.atividades = db.atividades || [];
-            db.membros = db.membros || [];
-            db.mural = db.mural || []; 
-            db.compras = db.compras || [];
-            db.calendario = db.calendario || [];
-            db.metaFamiliar = db.metaFamiliar || { objetivo: 'Defina uma meta!', pontos: 1000 };
-
-            if (!db.recompensas || db.recompensas.length === 0) {
-                db.recompensas = [
-                    { id: 'def1', nome: 'Escolher o filme do final de semana', custo: 50 },
-                    { id: 'def2', nome: 'Pedir Pizza', custo: 100 },
-                    { id: 'def3', nome: '1h a mais no PC/Videogame', custo: 30 }
-                ];
-            }
-            return db;
-        }
-
-        function saveDB(db) {
-            localStorage.setItem('familyHubDB', JSON.stringify(db));
-            atualizarListas();
-        }
-
-        function initAuth() {
-            const authData = localStorage.getItem('familyAuthDB');
-            if (authData) {
-                const auth = JSON.parse(authData);
-                document.getElementById('login-family-title').innerText = `Família: ${auth.familyName || 'Cadastrada'}`;
-                alternarAuth('login');
-            } else { alternarAuth('cadastro'); }
-        }
-
-        function alternarAuth(tela) {
-            document.getElementById('box-login').style.display = tela === 'login' ? 'block' : 'none';
-            document.getElementById('box-cadastro').style.display = tela === 'cadastro' ? 'block' : 'none';
-        }
-
-        async function registrarFamilia() {
-            const family = document.getElementById('reg-family').value.trim();
-            const admin = document.getElementById('reg-user').value.trim();
-            const pass = document.getElementById('reg-pass').value.trim();
-            if(!family || !admin || !pass) {
-                abrirModal('Atenção', 'Preencha todos os campos!', 'alert');
-                return;
-            }
-
-            localStorage.setItem('familyAuthDB', JSON.stringify({ familyName: family, password: pass }));
-            let db = getDB();
-            db.membros.push({ id: Date.now().toString(), nome: admin, avatar: '👑', papel: 'Administrador', pontos: 0, saldo: 0, tarefasConcluidas: 0 });
-            localStorage.setItem('familyHubDB', JSON.stringify(db));
-
-            await abrirModal('Sucesso', 'Família criada! Faça login para começar.', 'alert');
-            initAuth();
-        }
-
-        async function fazerLogin() {
-            const user = document.getElementById('login-user').value.trim();
-            const pass = document.getElementById('login-pass').value.trim();
-            const authData = localStorage.getItem('familyAuthDB');
-            
-            if(!authData) {
-                abrirModal('Aviso', 'Nenhuma família cadastrada no sistema!', 'alert');
-                return;
-            }
-            const auth = JSON.parse(authData);
-
-            if(!user || pass !== auth.password) {
-                abrirModal('Erro', 'Nome ou senha incorretos!', 'alert');
-                return;
-            }
-
-            currentUser = user;
-            document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('app-screen').style.display = 'flex';
-            document.getElementById('saudacao-user').innerHTML = `🌤️ Olá, ${currentUser}!`;
-
-            let db = getDB();
-            if(!db.membros.find(m => (m.nome || "").toLowerCase() === user.toLowerCase())) {
-                db.membros.push({ id: Date.now().toString(), nome: user, avatar: '👤', papel: 'Membro', pontos: 0, saldo: 0, tarefasConcluidas: 0 });
-                saveDB(db);
-            } else { atualizarListas(); }
-        }
-
-        // ==========================================
-        // INTERFACE, THEME E BACKUP
-        // ==========================================
-        function toggleTheme() {
-            const html = document.documentElement;
-            if (html.getAttribute('data-theme') === 'dark') {
-                html.removeAttribute('data-theme'); localStorage.setItem('theme', 'light');
-            } else { html.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); }
-        }
-        if(localStorage.getItem('theme') === 'light') document.documentElement.removeAttribute('data-theme');
-        document.getElementById('data-atual').innerText = hojeObj.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-        function navegar(idAba, btn) {
-            document.querySelectorAll('.aba').forEach(a => a.classList.remove('ativa'));
-            document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('aba-' + idAba).classList.add('ativa');
-            btn.classList.add('active');
-            
-            // Se for o calendário, forçar re-render para pegar tamanho certo
-            if(idAba === 'calendario') renderizarCalendario();
-        }
-
-        function toggleNotificacoes() { document.getElementById('notif-dropdown').classList.toggle('active'); }
-
-        function exportarDados() {
-            const data = JSON.stringify(getDB());
-            const blob = new Blob([data], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = 'familyHub_backup.json'; a.click();
-        }
-
-        function importarDados(e) {
-            const file = e.target.files[0];
-            if(!file) return;
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                try {
-                    const db = JSON.parse(evt.target.result);
-                    saveDB(db); 
-                    abrirModal('Backup Restaurado', 'Seus dados foram importados com sucesso!', 'alert');
-                } catch(err) { 
-                    abrirModal('Erro', 'O arquivo selecionado é inválido.', 'alert');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        // ==========================================
-        // CÁLCULO INTELIGENTE DE FERIADOS E DATAS
-        // ==========================================
-        function calcularPascoaObj(ano) {
-            const f = Math.floor, G = ano % 19, C = f(ano / 100);
-            const H = (C - f(C / 4) - f((8 * C + 13) / 25) + 19 * G + 15) % 30;
-            const I = H - f(H / 28) * (1 - f(29 / (H + 1)) * f((21 - G) / 11));
-            const J = (ano + f(ano / 4) + I + 2 - C + f(C / 4)) % 7;
-            const L = I - J, mes = 3 + f((L + 40) / 44), dia = L + 28 - 31 * f(mes / 4);
-            return new Date(ano, mes - 1, dia); 
-        }
-
-        function addDias(data, dias) {
-            const nd = new Date(data);
-            nd.setDate(nd.getDate() + dias);
-            return `${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}-${String(nd.getDate()).padStart(2,'0')}`;
-        }
-
-        function getNthSunday(ano, mes, n) {
-            let d = new Date(ano, mes, 1);
-            let count = 0;
-            while(true) {
-                if(d.getDay() === 0) { 
-                    count++;
-                    if(count === n) {
-                        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-                    }
-                }
-                d.setDate(d.getDate() + 1);
-            }
-        }
-
-        function getFeriados(ano) {
-            const feriados = {};
-            feriados[`${ano}-01-01`] = "🎆 Ano Novo";
-            feriados[`${ano}-04-21`] = "🏛️ Tiradentes";
-            feriados[`${ano}-05-01`] = "👷 Dia do Trabalho";
-            feriados[`${ano}-06-12`] = "❤️ Dia dos Namorados";
-            feriados[`${ano}-09-07`] = "🇧🇷 Independência do Brasil";
-            feriados[`${ano}-10-12`] = "🧸 N. S. Aparecida / Dia das Crianças";
-            feriados[`${ano}-10-15`] = "👨‍🏫 Dia do Professor";
-            feriados[`${ano}-11-02`] = "🕯️ Finados";
-            feriados[`${ano}-11-15`] = "📜 Proclamação da República";
-            feriados[`${ano}-12-25`] = "🎄 Natal";
-
-            const pascoaObj = calcularPascoaObj(ano);
-            feriados[addDias(pascoaObj, 0)] = "🐇 Páscoa";
-            feriados[addDias(pascoaObj, -48)] = "🎉 Carnaval (Segunda)";
-            feriados[addDias(pascoaObj, -47)] = "🎉 Carnaval (Terça)";
-            feriados[addDias(pascoaObj, -2)] = "✝️ Sexta-feira Santa";
-            feriados[addDias(pascoaObj, 60)] = "🍷 Corpus Christi";
-
-            feriados[getNthSunday(ano, 4, 2)] = "👩‍👧 Dia das Mães"; 
-            feriados[getNthSunday(ano, 7, 2)] = "👨‍👦 Dia dos Pais"; 
-
-            return feriados;
-        }
-
-        // ==========================================
-        // RENDERIZAÇÃO DO CALENDÁRIO VISUAL
-        // ==========================================
-        function mudarMes(direcao) {
-            calMesAtual += direcao;
-            if(calMesAtual < 0) { calMesAtual = 11; calAnoAtual--; }
-            else if(calMesAtual > 11) { calMesAtual = 0; calAnoAtual++; }
-            renderizarCalendario();
-        }
-
-        async function apagarEventoCalendario(id) {
-            const confirmacao = await abrirModal('Remover Evento', 'Deseja remover este evento do calendário?', 'confirm');
-            
-            if(confirmacao) {
-                let db = getDB();
-                db.calendario = db.calendario.filter(item => item.id !== id);
-                saveDB(db);
-                renderizarCalendario();
-            }
-        }
-
-        function renderizarCalendario() {
-            const db = getDB();
-            const grid = document.getElementById('calendar-grid');
-            document.getElementById('calendar-title').innerText = `${nomesMeses[calMesAtual]} ${calAnoAtual}`;
-            
-            grid.innerHTML = '';
-            
-            diasSemana.forEach(dia => {
-                grid.innerHTML += `<div class="calendar-day-header">${dia}</div>`;
-            });
-
-            const primeiroDiaDoMes = new Date(calAnoAtual, calMesAtual, 1).getDay();
-            const ultimoDiaDoMes = new Date(calAnoAtual, calMesAtual + 1, 0).getDate();
-            const feriados = getFeriados(calAnoAtual);
-
-            for (let i = 0; i < primeiroDiaDoMes; i++) {
-                grid.innerHTML += `<div class="calendar-day empty"></div>`;
-            }
-
-            for (let dia = 1; dia <= ultimoDiaDoMes; dia++) {
-                const dataString = `${calAnoAtual}-${String(calMesAtual + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
-                let isToday = (dataString === hojeISO) ? 'today' : '';
-                
-                let badgesHTML = '';
-
-                if(feriados[dataString]) {
-                    badgesHTML += `<div class="cal-badge holiday" title="${feriados[dataString]}">${feriados[dataString]}</div>`;
-                }
-
-                db.calendario.forEach(ev => {
-                    if(ev.data === dataString) {
-                        badgesHTML += `<div class="cal-badge event" title="${ev.descricao}" onclick="apagarEventoCalendario('${ev.id}')">🗓️ ${ev.descricao}</div>`;
-                    }
-                });
-
-                db.atividades.forEach(atv => {
-                    if(atv.data === dataString) {
-                        const mObj = db.membros.find(mb => mb.nome === atv.membro);
-                        const avatar = mObj ? (mObj.avatar || '👤') : '👤';
-                        badgesHTML += `<div class="cal-badge activity" title="${atv.descricao} (${atv.membro})">📋 ${avatar} ${atv.descricao}</div>`;
-                    }
-                });
-
-                grid.innerHTML += `
-                    <div class="calendar-day ${isToday}">
-                        <span class="day-number">${dia}</span>
-                        ${badgesHTML}
-                    </div>
-                `;
-            }
-        }
-
-
-        // ==========================================
-        // ATUALIZAÇÃO GERAL DA TELA (CORE)
-        // ==========================================
-        function calcularMedalhas(m) {
-            let medals = '';
-            if ((m.tarefasConcluidas || 0) >= 5) medals += '⭐ ';
-            if ((m.pontos || 0) >= 50 && (m.pontos || 0) < 150) medals += '🥉 ';
-            if ((m.pontos || 0) >= 150 && (m.pontos || 0) < 300) medals += '🥈 ';
-            if ((m.pontos || 0) >= 300) medals += '👑 ';
-            return medals;
-        }
-
-        function atualizarListas() {
-            const db = getDB();
-
-            // 1. Membros
-            document.getElementById('lista-membros-simples').innerHTML = db.membros.map(m => `
-                <div class="item-list">
-                    <div style="font-size: 1.1rem;">${m.avatar || '👤'} <strong>${m.nome || 'Desconhecido'}</strong></div>
-                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end;">
-                        <span class="badge" style="background: var(--bg-input); color: var(--text-main); font-size: 1rem;">R$ ${(m.saldo || 0).toFixed(2)}</span>
-                        <div>
-                            <button class="btn-action success" onclick="alterarSaldo('${m.id}', 5)">+5</button>
-                            <button class="btn-action danger" onclick="alterarSaldo('${m.id}', -5)">-5</button>
-                            <button class="btn-action warning" onclick="editarSaldoDireto('${m.id}')">✏️ Editar</button>
-                            <button class="btn-action danger" onclick="apagarItem('membros', '${m.id}')">X</button>
-                        </div>
-                    </div>
-                </div>`).join('');
-
-            // 2. Select Membros
-            const selectOptions = db.membros.map(m => `<option value="${m.nome || ''}">${m.avatar || '👤'} ${m.nome || 'Desconhecido'}</option>`).join('');
-            document.getElementById('a-membro').innerHTML = selectOptions || '<option value="">Cadastre membros...</option>';
-
-            // 3. Ranking & Meta
-            let pontosTotais = 0;
-            const membrosOrdenados = [...db.membros].sort((a, b) => (b.pontos || 0) - (a.pontos || 0));
-            document.getElementById('lista-ranking').innerHTML = membrosOrdenados.map((m, i) => {
-                pontosTotais += (m.pontos || 0);
-                const pos = i === 0 ? '1º' : i === 1 ? '2º' : i === 2 ? '3º' : `${i+1}º`;
-                return `
-                <div class="item-list">
-                    <div><strong style="font-size: 1.2rem;">${pos} ${m.avatar || '👤'} ${m.nome || 'Desconhecido'}</strong> <span style="margin-left: 10px;">${calcularMedalhas(m)}</span></div>
-                    <div><span class="badge pontos" style="font-size: 1rem;">${m.pontos || 0} pts</span></div>
-                </div>`;
-            }).join('');
-
-            document.getElementById('meta-texto-display').innerText = `Objetivo: ${db.metaFamiliar.objetivo || 'Sem objetivo'}`;
-            const bar = document.getElementById('meta-progress');
-            bar.max = db.metaFamiliar.pontos || 1000; bar.value = pontosTotais;
-            document.getElementById('meta-status').innerText = `${pontosTotais} / ${db.metaFamiliar.pontos || 1000} pts`;
-
-            // 4. Atividades
-            document.getElementById('lista-atividades').innerHTML = db.atividades.map(a => {
-                const mObj = db.membros.find(mb => mb.nome === a.membro);
-                const avatar = mObj ? (mObj.avatar || '👤') : '👤';
-                const responsavel = a.membro || 'Alguém';
-                return `
-                <div class="item-list">
-                    <div>
-                        <strong>${a.descricao || 'Atividade'}</strong> <span class="tag-dif ${a.dificuldade || 'facil'}">${a.dificuldade || 'Fácil'}</span><br>
-                        <small style="color:var(--text-muted)">${avatar} ${responsavel} | 📅 ${formatarDataBR(a.data)} | <span class="tag-pts">💰 ${a.pontos || 0} pts</span></small>
-                    </div>
-                    <div>
-                        <button class="btn-action success" onclick="concluirAtividade('${a.id}')">✔ Concluir</button>
-                        <button class="btn-action danger" onclick="apagarItem('atividades', '${a.id}')">X</button>
-                    </div>
-                </div>`
-            }).join('');
-
-            renderizarCalendario();
-
-            // 6. Compras
-            document.getElementById('lista-compras').innerHTML = db.compras.map(c => `
-                <div class="item-list" style="padding: 10px 0;">
-                    <div style="display:flex; align-items:center; gap:10px;" class="compra-item ${c.comprado ? 'riscado' : ''}">
-                        <input type="checkbox" class="compra-check" ${c.comprado ? 'checked' : ''} onchange="toggleCompra('${c.id}')">
-                        <strong>${c.nome || 'Item'}</strong>
-                    </div>
-                    <button class="btn-action danger" onclick="apagarItem('compras', '${c.id}')">X</button>
-                </div>`).join('');
-
-            // 7. Loja
-            document.getElementById('lista-loja').innerHTML = db.recompensas.map(r => `
-                <div class="item-list">
-                    <div><strong>🎁 ${r.nome || 'Prêmio'}</strong></div>
-                    <div>
-                        <span class="badge" style="background: var(--warning); color: white;">💰 ${r.custo || 0} pts</span>
-                        <button class="btn-action success" onclick="comprarRecompensa('${r.id}', ${r.custo || 0}, '${r.nome || ''}')">Comprar</button>
-                        <button class="btn-action danger" onclick="apagarItem('recompensas', '${r.id}')">X</button>
-                    </div>
-                </div>`).join('');
-
-            // 8. Mural
-            const listaMural = document.getElementById('lista-mural');
-            if(db.mural.length > 0) {
-                listaMural.innerHTML = db.mural.slice().reverse().map(m => `
-                    <div class="msg-bubble">
-                        <div class="msg-header"><span>De: <strong style="color: var(--primary)">${m.autor || 'Alguém'}</strong></span> <span>${m.hora || ''}</span></div>
-                        <div style="margin-top: 5px;">${m.texto || ''}</div>
-                    </div>`).join('');
-            } else { listaMural.innerHTML = 'Nenhuma mensagem no mural.'; }
-
-            // Notificações Base
-            document.getElementById('info-atividades').innerText = `${db.atividades.length} Atv`;
-            
-            let notificacoes = [];
-            db.atividades.forEach(a => {
-                if(a.data < hojeISO) notificacoes.push(`<div class="notify-item atrasada"><strong>🔴 Atrasada:</strong> ${a.descricao} (${a.membro})</div>`);
-                else if (a.data === hojeISO) notificacoes.push(`<div class="notify-item hoje"><strong>🟡 Hoje:</strong> ${a.descricao} (${a.membro})</div>`);
-            });
-            const cNotif = document.getElementById('notif-count');
-            if(notificacoes.length > 0) {
-                cNotif.innerText = notificacoes.length; cNotif.style.display = 'block';
-                document.getElementById('lista-notificacoes').innerHTML = notificacoes.join('');
-            } else {
-                cNotif.style.display = 'none';
-                document.getElementById('lista-notificacoes').innerHTML = '<div class="notify-item">Tudo tranquilo! ✨</div>';
-            }
-        }
-
-        // ==========================================
-        // FUNÇÕES DE AÇÃO
-        // ==========================================
-        function calcularPreviaPontos() {
-            const vals = {'facil':0, 'media':5, 'dificil':10, 'normal':0, 'alta':5, 'urgente':10};
-            const dif = document.getElementById('a-dificuldade').value;
-            const imp = document.getElementById('a-importancia').value;
-            const t = 10 + (vals[dif] || 0) + (vals[imp] || 0);
-            document.getElementById('btn-add-atv').innerText = `Adicionar (${t} pts)`; return t;
-        }
-
-        function novaAtividade() {
-            const desc = document.getElementById('a-desc').value, data = document.getElementById('a-data').value;
-            const membro = document.getElementById('a-membro').value;
-            if(!desc || !membro || !data) {
-                abrirModal('Aviso', 'Preencha descrição, data e responsável!', 'alert');
-                return;
-            }
-            
-            let db = getDB();
-            db.atividades.push({ id: Date.now().toString(), descricao: desc, data: data, membro: membro, dificuldade: document.getElementById('a-dificuldade').value, pontos: calcularPreviaPontos() });
-            saveDB(db);
-            document.getElementById('a-desc').value = ''; document.getElementById('a-data').value = '';
-        }
-
-        function novoEvento() {
-            const data = document.getElementById('cal-data').value;
-            const desc = document.getElementById('cal-desc').value;
-            if(!data || !desc) {
-                abrirModal('Aviso', 'Preencha a data e a descrição do evento!', 'alert');
-                return;
-            }
-            let db = getDB();
-            if(!db.calendario) db.calendario = [];
-            db.calendario.push({ id: Date.now().toString(), data: data, descricao: desc });
-            saveDB(db);
-            document.getElementById('cal-data').value = ''; document.getElementById('cal-desc').value = '';
-            
-            calAnoAtual = parseInt(data.split('-')[0]);
-            calMesAtual = parseInt(data.split('-')[1]) - 1;
-            renderizarCalendario();
-        }
-
-        function concluirAtividade(id) {
-            let db = getDB();
-            const atv = db.atividades.find(a => a.id === id);
-            if(atv) {
-                const idx = db.membros.findIndex(m => m.nome === atv.membro);
-                if(idx !== -1) {
-                    db.membros[idx].pontos = (db.membros[idx].pontos || 0) + (atv.pontos || 0);
-                    db.membros[idx].tarefasConcluidas = (db.membros[idx].tarefasConcluidas || 0) + 1;
-                    abrirModal('🎉 Mandou bem!', `${atv.membro} ganhou +${atv.pontos || 0} pontos!`, 'alert');
-                }
-            }
-            db.atividades = db.atividades.filter(a => a.id !== id); saveDB(db);
-        }
-
-        function novoMembro() {
-            const nome = document.getElementById('m-nome').value, avatar = document.getElementById('m-avatar').value, papel = document.getElementById('m-papel').value;
-            if(!nome) {
-                abrirModal('Aviso', 'Digite o nome do membro!', 'alert');
-                return;
-            }
-            let db = getDB();
-            db.membros.push({ id: Date.now().toString(), nome, avatar, papel, pontos: 0, saldo: 0, tarefasConcluidas: 0 });
-            saveDB(db); document.getElementById('m-nome').value = '';
-        }
-
-        function alterarSaldo(id, valor) {
-            let db = getDB();
-            const idx = db.membros.findIndex(m => m.id === id);
-            if(idx !== -1) {
-                db.membros[idx].saldo = (db.membros[idx].saldo || 0) + valor;
-                saveDB(db);
-            }
-        }
-
-        async function editarSaldoDireto(id) {
-            let db = getDB();
-            const idx = db.membros.findIndex(m => m.id === id);
-            if(idx !== -1) {
-                const valorAtual = db.membros[idx].saldo || 0;
-                
-                const novoValor = await abrirModal('Editar Saldo', `Digite o novo saldo (em Reais) para ${db.membros[idx].nome}:`, 'prompt', valorAtual.toFixed(2));
-                
-                if (novoValor !== null && novoValor.trim() !== "") {
-                    const num = parseFloat(novoValor.replace(',', '.'));
-                    if(!isNaN(num)) {
-                        db.membros[idx].saldo = num;
-                        saveDB(db);
-                    } else {
-                        abrirModal('Erro', 'Por favor, digite um número válido.', 'alert');
-                    }
-                }
-            }
-        }
-
-        function novaMensagem() {
-            const texto = document.getElementById('m-texto').value; if(!texto) return;
-            let db = getDB();
-            db.mural.push({ id: Date.now().toString(), texto: texto, autor: currentUser, hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) });
-            saveDB(db); document.getElementById('m-texto').value = '';
-        }
-
-        function novoItemCompra() {
-            const item = document.getElementById('c-item').value; if(!item) return;
-            let db = getDB();
-            db.compras.push({ id: Date.now().toString(), nome: item, comprado: false });
-            saveDB(db); document.getElementById('c-item').value = '';
-        }
-
-        function toggleCompra(id) {
-            let db = getDB();
-            const idx = db.compras.findIndex(c => c.id === id);
-            if(idx !== -1) { db.compras[idx].comprado = !db.compras[idx].comprado; saveDB(db); }
-        }
-
-        function novaRecompensa() {
-            const nome = document.getElementById('r-nome').value, custo = parseInt(document.getElementById('r-custo').value);
-            if(!nome || !custo) {
-                abrirModal('Aviso', 'Preencha nome e custo do prêmio!', 'alert');
-                return;
-            }
-            let db = getDB();
-            db.recompensas.push({ id: Date.now().toString(), nome, custo });
-            saveDB(db); document.getElementById('r-nome').value = ''; document.getElementById('r-custo').value = '';
-        }
-
-        async function comprarRecompensa(id, custo, nome) {
-            let db = getDB();
-            
-            const compradorStr = await abrirModal('Confirmar Compra', `Quem está comprando '${nome}'? Digite o nome exato do membro:`, 'prompt');
-            
-            if(!compradorStr) return;
-            const idx = db.membros.findIndex(m => (m.nome || "").toLowerCase() === compradorStr.toLowerCase());
-            
-            if(idx === -1) {
-                abrirModal('Atenção', 'Membro não encontrado!', 'alert');
-                return;
-            }
-            if((db.membros[idx].pontos || 0) < custo) {
-                abrirModal('Saldo Insuficiente', `${db.membros[idx].nome} tem apenas ${db.membros[idx].pontos || 0} pontos.`, 'alert');
-                return;
-            }
-            
-            db.membros[idx].pontos -= custo;
-            abrirModal('🎉 Sucesso!', `${db.membros[idx].nome} resgatou '${nome}'. Foram debitados ${custo} pontos.`, 'alert');
-            saveDB(db);
-        }
-
-        function salvarMeta() {
-            const obj = document.getElementById('meta-obj').value, pts = parseInt(document.getElementById('meta-pontos').value);
-            if(!obj || !pts) {
-                abrirModal('Aviso', 'Preencha o objetivo e os pontos necessários!', 'alert');
-                return;
-            }
-            let db = getDB(); db.metaFamiliar = { objetivo: obj, pontos: pts }; saveDB(db);
-        }
-
-        async function apagarItem(tabela, id) {
-            const confirmacao = await abrirModal('Atenção', 'Tem certeza que deseja remover este item definitivamente?', 'confirm');
-            
-            if(confirmacao) {
-                let db = getDB(); 
-                db[tabela] = db[tabela].filter(item => item.id !== id); 
-                saveDB(db);
-            }
-        }
-
-        initAuth();
-    </script>
-</body>
+    <!-- Scripts Modulares -->
+    <script src="js/core.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/familia.js"></script>
+    <script src="js/atividades.js"></script>
+    <script src="js/calendario.js"></script>
+    <script src="js/compras.js"></script>
+    <script src="js/loja.js"></script>
+    <script src="js/mural.js"></script>
+    <script src="js/ranking.js"></script>
+  </body>
 </html>
